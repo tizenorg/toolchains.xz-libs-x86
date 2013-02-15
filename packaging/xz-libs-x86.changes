@@ -1,0 +1,7 @@
+* Sun Apr 24 08:02:35 UTC 2011 - Jan-Simon Möller <jsmoeller@linuxfoundation.org> - 1.0
+- Add baselibs.conf to src.rpm
+
+* Mon Jan  3 21:03:00 UTC 2011 Carsten Munk <carsten@maemo.org> - 1.0
+- Part of BMC#12113 (speedrpm implementation)
+- Add armv7hl and armv7nhl support
+- Initial version on meego.com (based off Jan-Simon Moller's other -x86 packages)
