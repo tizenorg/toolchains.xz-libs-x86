@@ -1,33 +1,58 @@
 %define __strip /bin/true
-%define _build_name_fmt    %%{ARCH}/%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.dontuse.rpm
-# meta spec file for cross-chroot setup 
+%define _build_name_fmt    %%{ARCH}/%%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.vanish.rpm
+# meta spec file for cross-chroot setup
 #
-# Copyright (c) 2010  Jan-Simon Möller (jsmoeller@linuxfoundation.org)
-# License: GPLv2
-
-## README
-##
-## In this file:
-## 1) define name of original package (see oldname)
-## 
-## File binaries_to_prepare:
-## 2) fill in the binaries which need to be available to the foreign chroot
-##    e.g. /bin/bash   -  this will make a i586 bash available
-##
+# Copyright (c) 2009-2011 Martin Mohring   (martin.mohring@opensuse.org)
+# Copyright (c) 2011      5eEcoSystems     (info@5eecosystems.com)
+#
+# All modifications and additions to the file contributed by third parties
+# remain the property of the copyright owners, unless otherwise agreed
+# upon. The cross build accelerators as is, and modifications
+# and additions to the it, are licensed under the GPLv2.
+# In addition, the cross build accelerators are licensed together with
+# a package where they will be contained in
+# under the license of the prestine package (unless the
+# license for the pristine package is not an Open Source License, in which
+# case the license is the MIT License). An "Open Source License" is a
+# license that conforms to the Open Source Definition (Version 1.9)
+# published by the Open Source Initiative.
 
 #\/\/\/\/\/\/\/\/\/\/
 ### only changes here
+
 #
 # The original package name
 %define oldname xz-libs
+
 #
 # The architectures this meta package is built on
 %define myexclusive i586
+
 #
+# The required package for building this package
+# This can be distribution dependent. Good start is:
+# e.g. rpm grep tar sed patchelf
+#
+BuildRequires: rpm grep tar sed patchelf
+
+#
+# Additional required packages needed in addition to those of original package
+# e.g. (usually empty) for an accelerator to be 100% compatible
+#
+#Requires:      <usuallyemptlylist>
+
+# For a real accelerator, also the old packge is required for compatibility
+# pls change this only if you know what you do
+Requires:      %oldname
+
+#
+# Release under which to put the accelerator
+# e.g. 1 or higher
+#
+Release:       8.3
+
 ### no changes needed below this line
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
 
 ### no changes needed
 #
@@ -63,17 +88,14 @@
 
 Name:          %newname
 Version:       %newversion
-Release:       7
 AutoReqProv:   0
 Provides:      %newname
-BuildRequires: rpm grep tar patchelf sed -rpmlint-Moblin -rpmlint-mini -post-build-checks
 BuildRequires: %oldname
-Requires:      %oldname
 # no auto requirements - they're generated
 License:       %newlicense
 Group:         %newgroup
 ExclusiveArch: %myexclusive
-Summary:       Don't use! %newsummary
+Summary:       Dont use %newsummary !
 BuildRoot:     %{_tmppath}/%{name}-%{version}-build
 %if %binaries_to_prepare
 Source10:      binaries_to_prepare
@@ -156,7 +178,7 @@ rm filestoinclude2
 echo ""
 echo "[ .oO Preparing binaries Oo. ]"
 echo ""
-mkdir %buildroot/%{_prefix}/share/applybinary/
+mkdir -p %buildroot/%{_prefix}/share/applybinary/
 for binary in `cat %{_sourcedir}/binaries_to_prepare` ; do
   echo "Processing binary: $binary"
   tmp="tmp.$$"
@@ -165,16 +187,18 @@ for binary in `cat %{_sourcedir}/binaries_to_prepare` ; do
 %else
   debug="--debug"
 %endif
-  ldd $binary  | grep -v "ld-linux" | grep -v "linux-gate" |  sed -e "s#=.*##g" -e "s#^\t*##g"  > $tmp
-  deps=$(for i in `cat $tmp` ; do rpm -q --whatprovides "$i" | grep -v "no package"; done)
-  cleandeps=$(echo "$cleandeps" "$deps" | sort | uniq | sed -e "s/-[0-9].*//g")
-  patchelf $debug --set-rpath %newrpath %buildroot/$binary
-  patchelf $debug --set-interpreter %newinterpreter %buildroot/$binary
-  patchelf $debug --set-rpath %newrpath %buildroot/$binary
-  patchelf $debug --set-interpreter %newinterpreter %buildroot/$binary
-  if test -n "$debug"; then
-    patchelf --print-rpath %buildroot/$binary
-    patchelf --print-interpreter %buildroot/$binary
+  if file $binary | grep -q dynamic; then
+    ldd $binary  | grep -v "ld-linux" | grep -v "linux-gate" |  sed -e "s#=.*##g" -e "s#^\t*##g"  > $tmp
+    deps=$(for i in `cat $tmp` ; do rpm -q --whatprovides "$i" | grep -v "no package"; done)
+    cleandeps=$(echo "$cleandeps" "$deps" | sort | uniq | sed -e "s/-[0-9].*//g")
+    patchelf $debug --set-rpath %newrpath %buildroot/$binary
+    patchelf $debug --set-interpreter %newinterpreter %buildroot/$binary
+    patchelf $debug --set-rpath %newrpath %buildroot/$binary
+    patchelf $debug --set-interpreter %newinterpreter %buildroot/$binary
+    if test -n "$debug"; then
+      patchelf --print-rpath %buildroot/$binary
+      patchelf --print-interpreter %buildroot/$binary
+    fi
   fi
   echo "$binary" >> %buildroot/%{_prefix}/share/applybinary/%name
   echo ""
@@ -239,7 +263,7 @@ shellquote "  targettype arm requires \"tizen-accelerator\"" >> /tmp/baselibs_ne
 %if %binaries_to_prepare
 # Todo: error handling if .orig-arm is present
 for binary in `cat %{_sourcedir}/binaries_to_prepare` ; do
-   shellquote "  targettype arm post \"  if test -e ${binary}.orig-arm; then \" " >> /tmp/baselibs_new.conf
+   shellquote "  targettype arm post \"  if test -e ${binary}.orig-arm -a -h ${binary}; then \" " >> /tmp/baselibs_new.conf
    shellquote "  targettype arm post \"    echo \"${binary}.orig-arm already present - skipping.\" \" " >> /tmp/baselibs_new.conf
    shellquote "  targettype arm post \"  else \" " >> /tmp/baselibs_new.conf
    shellquote "  targettype arm post \"    mv ${binary} ${binary}.orig-arm ; ln -s <prefix>${binary} ${binary} \"" >> /tmp/baselibs_new.conf
@@ -279,3 +303,12 @@ rm -rf $RPM_BUILD_ROOT
 %if %binaries_to_prepare
 /%{_prefix}/share/applybinary/%name
 %endif
+%changelog
+* Fri Jul  6 2012 UkJung Kim <ujkim@samsung.com> - 1.0
+- Added and updated OBS-Accelerator-0.1.tar.bz2
+* Sun Apr 24 2011 Jan-Simon Möller <jsmoeller@linuxfoundation.org> - 1.0
+- Add baselibs.conf to src.rpm
+* Tue Jan  4 2011 Carsten Munk <carsten@maemo.org> - 1.0
+- Part of BMC#12113 (speedrpm implementation)
+- Add armv7hl and armv7nhl support
+- Initial version on meego.com (based off Jan-Simon Moller's other -x86 packages)
