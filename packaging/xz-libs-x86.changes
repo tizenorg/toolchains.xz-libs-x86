@@ -1,0 +1,10 @@
+* Fri Jul  6 14:30:00 KST 2012 - UkJung Kim <ujkim@samsung.com> - 1.0
+- Added and updated OBS-Accelerator-0.1.tar.bz2
+
+* Sun Apr 24 08:02:35 UTC 2011 - Jan-Simon Möller <jsmoeller@linuxfoundation.org> - 1.0
+- Add baselibs.conf to src.rpm
+
+* Mon Jan  3 21:03:00 UTC 2011 Carsten Munk <carsten@maemo.org> - 1.0
+- Part of BMC#12113 (speedrpm implementation)
+- Add armv7hl and armv7nhl support
+- Initial version on meego.com (based off Jan-Simon Moller's other -x86 packages)
